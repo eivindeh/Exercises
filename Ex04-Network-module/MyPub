@@ -1,0 +1,51 @@
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <string.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/pubsub.h>
+
+#define SERVER "server"
+#define CLIENT "client"
+
+
+int server (const char *url)
+{
+  int sock = nn_socket (AF_SP, NN_PUB);
+  while (1)
+    {
+      char *d = "Halla";
+      int sz_d = strlen(d) + 1;
+      printf ("SERVER: PUBLISHING%s\n", d);
+      int bytes = nn_send (sock, d, sz_d, 0);
+    }
+  return nn_shutdown (sock, 0);
+}
+
+int client (const char *url, const char *name)
+{
+  int sock = nn_socket (AF_SP, NN_SUB);
+  while (1)
+    {
+      char *buf = NULL;
+      int bytes = nn_recv (sock, &buf, NN_MSG, 0);
+      printf ("CLIENT (%s): RECEIVED %s\n", name, buf);
+      nn_freemsg (buf);
+    }
+  return nn_shutdown (sock, 0);
+}
+
+int main (const int argc, const char **argv)
+{
+  if (strncmp (SERVER, argv[1], strlen (SERVER)) == 0 && argc >= 2)
+    return server (argv[2]);
+  else if (strncmp (CLIENT, argv[1], strlen (CLIENT)) == 0 && argc >= 3)
+    return client (argv[2], argv[3]);
+  else
+    {
+      fprintf (stderr, "Usage: pubsub %s|%s <URL> <ARG> ...\n",
+               SERVER, CLIENT);
+      return 1;
+    }
+}
